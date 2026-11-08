@@ -1,0 +1,193 @@
+import vi from '../i18n/locales/vi.json';
+/** Physical values from individual NASA NSSDCA fact sheets, checked 2026-11-08.
+ * Radii are volumetric mean radii, NOT equatorial radii. No display values here. */
+export interface SolarBody {
+  id: string;
+  name: string;
+  englishName: string;
+  aliases: string[];
+  category: 'Ngôi sao' | 'Hành tinh' | 'Vệ tinh tự nhiên';
+  parentId: 'sun' | 'earth' | null;
+  radiusKm: number;
+  massKg: number;
+  semiMajorAxisKm?: number;
+  orbitalPeriodDays?: number;
+  rotationHours?: number;
+  obliquityDegrees?: number;
+  color: string;
+  description: string;
+  source: string;
+}
+
+const source = (id: string) => `https://nssdc.gsfc.nasa.gov/planetary/factsheet/${id}fact.html`;
+export const solarBodies: SolarBody[] = [
+  {
+    id: 'sun',
+    name: vi['bodies.sun.name'],
+    englishName: 'Sun',
+    aliases: ['Sol', 'Hệ Mặt Trời'],
+    category: 'Ngôi sao',
+    parentId: null,
+    radiusKm: 695700,
+    massKg: 1.9884e30,
+    color: '#ffe1a1',
+    description: vi['bodies.sun.description'],
+    source: source('sun'),
+  },
+  {
+    id: 'mercury',
+    name: vi['bodies.mercury.name'],
+    englishName: 'Mercury',
+    aliases: ['Thủy Tinh'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 2439.7,
+    massKg: 0.3301e24,
+    semiMajorAxisKm: 57.909e6,
+    orbitalPeriodDays: 87.969,
+    rotationHours: 1407.6,
+    obliquityDegrees: 0.034,
+    color: '#a4a09c',
+    description: vi['bodies.mercury.description'],
+    source: source('mercury'),
+  },
+  {
+    id: 'venus',
+    name: vi['bodies.venus.name'],
+    englishName: 'Venus',
+    aliases: ['Kim Tinh'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 6051.8,
+    massKg: 4.8673e24,
+    semiMajorAxisKm: 108.21e6,
+    orbitalPeriodDays: 224.701,
+    rotationHours: -5832.6,
+    obliquityDegrees: 177.36,
+    color: '#e7c998',
+    description: vi['bodies.venus.description'],
+    source: source('venus'),
+  },
+  {
+    id: 'earth',
+    name: vi['bodies.earth.name'],
+    englishName: 'Earth',
+    aliases: ['Địa Cầu', 'Terra'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 6371,
+    massKg: 5.9722e24,
+    semiMajorAxisKm: 149.598e6,
+    orbitalPeriodDays: 365.256,
+    rotationHours: 23.9345,
+    obliquityDegrees: 23.44,
+    color: '#739fcc',
+    description: vi['bodies.earth.description'],
+    source: source('earth'),
+  },
+  {
+    id: 'mars',
+    name: vi['bodies.mars.name'],
+    englishName: 'Mars',
+    aliases: ['Hỏa Tinh'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 3389.5,
+    massKg: 0.64169e24,
+    semiMajorAxisKm: 227.956e6,
+    orbitalPeriodDays: 686.98,
+    rotationHours: 24.6229,
+    obliquityDegrees: 25.19,
+    color: '#ce805b',
+    description: vi['bodies.mars.description'],
+    source: source('mars'),
+  },
+  {
+    id: 'jupiter',
+    name: vi['bodies.jupiter.name'],
+    englishName: 'Jupiter',
+    aliases: ['Mộc Tinh'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 69911,
+    massKg: 1898.13e24,
+    semiMajorAxisKm: 778.479e6,
+    orbitalPeriodDays: 4332.589,
+    rotationHours: 9.925,
+    obliquityDegrees: 3.13,
+    color: '#cfb093',
+    description: vi['bodies.jupiter.description'],
+    source: source('jupiter'),
+  },
+  {
+    id: 'saturn',
+    name: vi['bodies.saturn.name'],
+    englishName: 'Saturn',
+    aliases: ['Thổ Tinh'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 58232,
+    massKg: 568.32e24,
+    semiMajorAxisKm: 1432.041e6,
+    orbitalPeriodDays: 10755.699,
+    rotationHours: 10.656,
+    obliquityDegrees: 26.73,
+    color: '#decca5',
+    description: vi['bodies.saturn.description'],
+    source: source('saturn'),
+  },
+  {
+    id: 'uranus',
+    name: vi['bodies.uranus.name'],
+    englishName: 'Uranus',
+    aliases: ['Thiên Vương Tinh'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 25362,
+    massKg: 86.811e24,
+    semiMajorAxisKm: 2867.043e6,
+    orbitalPeriodDays: 30685.4,
+    rotationHours: -17.24,
+    obliquityDegrees: 97.77,
+    color: '#b3d5d6',
+    description: vi['bodies.uranus.description'],
+    source: source('uranus'),
+  },
+  {
+    id: 'neptune',
+    name: vi['bodies.neptune.name'],
+    englishName: 'Neptune',
+    aliases: ['Hải Vương Tinh'],
+    category: 'Hành tinh',
+    parentId: 'sun',
+    radiusKm: 24622,
+    massKg: 102.409e24,
+    semiMajorAxisKm: 4514.953e6,
+    orbitalPeriodDays: 60189.018,
+    rotationHours: 16.11,
+    obliquityDegrees: 28.32,
+    color: '#8fb6ce',
+    description: vi['bodies.neptune.description'],
+    source: source('neptune'),
+  },
+  {
+    id: 'moon',
+    name: vi['bodies.moon.name'],
+    englishName: 'Moon',
+    aliases: ['Luna'],
+    category: 'Vệ tinh tự nhiên',
+    parentId: 'earth',
+    radiusKm: 1737.4,
+    massKg: 0.07346e24,
+    semiMajorAxisKm: 384400,
+    orbitalPeriodDays: 27.3217,
+    rotationHours: 655.72,
+    obliquityDegrees: 6.68,
+    color: '#b4b5b7',
+    description: vi['bodies.moon.description'],
+    source: source('moon'),
+  },
+];
+
+export const planets = solarBodies.filter((body) => body.category === 'Hành tinh');
+export const getSolarBody = (id: string | null) => solarBodies.find((body) => body.id === id);
