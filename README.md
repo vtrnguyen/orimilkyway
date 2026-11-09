@@ -24,6 +24,41 @@ Workflow `.github/workflows/deploy.yml` chạy khi push vào `main` hoặc đư�
 
 Vite dùng base `/orimilkyway/` cho production, còn máy chủ phát triển vẫn dùng `/`. Sau `npm run build`, chạy `npm run preview` và mở `http://127.0.0.1:4173/orimilkyway/` để kiểm tra bản production với đúng đường dẫn. Nếu đổi tên repository hoặc dùng tên miền riêng, cập nhật `base` trong `vite.config.ts` cho phù hợp.
 
+## Hiện tượng vũ trụ
+
+Mở **Hiện tượng vũ trụ** trong thanh bên (điện thoại: bấm **Khám phá**) rồi chọn một trong năm mô phỏng: **Siêu tân tinh, Hố đen, Nhật thực, Nguyệt thực, Thủy triều**. Mỗi cảnh có tiến trình, chạy/tạm dừng, tốc độ, bắt đầu lại và các nút xem từng bước. Đổi góc nhìn hoặc kéo/xoay/zoom trực tiếp trên cảnh. Nhấp thành phần, nhãn hoặc dùng bộ chọn thành phần để đọc giải thích.
+
+Thủy triều lặp theo một vòng quay. Các cảnh còn lại dừng khi hết tiến trình; riêng hố đen không tự quay về đầu vì các hạt có chu kỳ khác nhau. Tua ngược hoặc bắt đầu lại để xem lại cùng trạng thái.
+
+**Xem 3D tập trung** giữ nguyên Canvas, camera và tiến trình; nhãn và giao diện mặc định được ẩn. Nút điều khiển nhỏ cạnh nút thoát mở một bảng nổi có thể cuộn/đóng. Nhấp thiên thể vẫn mở phần giải thích; bóng và vỏ nước trong suốt không chặn chọn thiên thể phía sau. Escape đóng chi tiết trước, rồi bảng điều khiển nếu còn mở, rồi mới thoát chế độ. Mobile dùng bottom sheet; thao tác trong bảng không truyền xuống cảnh.
+
+Các tệp trong `src/phenomena/` tách vai trò:
+
+- `model.ts`: đồng hồ xác định, các giai đoạn sụp đổ lõi, kích thước góc/diện tích chồng hai đĩa, nón bóng, phân loại nhật/nguyệt thực và thế gây triều.
+- `state.ts`: reducer cho tiến trình, tham số, chọn thành phần và góc nhìn. Chỉ có một đồng hồ khi khu vực hiện tượng đang chạy; cleanup khi tạm dừng/chuyển cảnh. Thời gian tab bị ẩn được bỏ qua. Mỗi 100 ms cập nhật UI một lần; không cập nhật React state cho từng hạt.
+- `geometry.ts`: biến đổi mô hình vật lý sang tọa độ hiển thị, dựng nón bóng và vị trí điểm quan sát/nhãn.
+- `PhenomenaScene.tsx`: Canvas đang hoạt động, buffer hạt có seed cố định, instancing vật chất quanh hố đen, shader nguyệt thực và vỏ nước biến dạng. Các buffer được tái sử dụng, tài nguyên được giải phóng khi unmount. Chuyển ngôn ngữ, mở chi tiết và vào/thoát tập trung không remount Canvas.
+- `Diagrams.tsx`: khung nhìn từ điểm quan sát, đồ thị thủy triều và sơ đồ 2D khi thiếu WebGL, đều lấy từ mô hình chung.
+- `PhenomenaControls.tsx`, `PhenomenaStage.tsx`, `catalog.ts`: điều khiển, giải thích và liên kết nguồn. Toàn bộ chữ mới dùng các key `phen.*` trong cả ba tệp dịch.
+
+Giả định và giới hạn khoa học:
+
+- **Siêu tân tinh:** một kịch bản sụp đổ lõi sao khối lượng lớn, không mô tả mọi loại siêu tân tinh. Bốn giai đoạn là cấu trúc trước nổ, co lõi, sóng xung kích/phóng vật chất và tàn dư giãn nở. Chọn sao neutron làm một kết quả minh họa; không dùng ngưỡng khối lượng tự đặt để quyết định kết cục. Hạt là vật chất, vỏ lưới là sóng xung kích; tăng sáng là tín hiệu bức xạ riêng. Không giải thủy động lực học, truyền neutrino hoặc thời gian/kích thước thật. Hiệu ứng sáng biến đổi chậm, không nhấp nháy; giảm chuyển động dùng các trạng thái tĩnh và bước tiến trình.
+- **Hố đen:** minh họa không quay, bán kính chân trời chuẩn hóa bằng 1. Mặt cầu/lưới là ranh giới, không phải vỏ rắn và không phải ảnh bóng hố đen. Đĩa tùy chọn nằm ngoài chân trời (mép trong minh họa 3 bán kính chân trời); quỹ đạo vật chất và đường ánh sáng chỉ là sơ đồ, không giải trắc địa tương đối tính. Không tạo jet từ bên trong chân trời hoặc điều khiển khối lượng chưa có mô hình đầy đủ.
+- **Nhật/nguyệt thực:** bán kính vật lý từ dữ liệu NASA hiện có; khoảng cách Mặt Trời–Trái Đất dùng 1 AU. Ví dụ nhật thực dùng khoảng cách Trái Đất–Mặt Trăng 360.000/405.000 km và độ lệch đường đi được chọn cho từng cấu hình; ví dụ nguyệt thực dùng 384.400 km. Kích thước góc là `asin(R/d)`; khoảng cách góc lấy từ tích vô hướng hai hướng quan sát. Diện tích che khuất lấy giao hai hình tròn trên bầu trời. Loại nhật thực áp dụng tại điểm quan sát cố định phía Mặt Trời, không gán cùng một loại cho toàn Trái Đất. Các preset đặt tiến trình ở giữa lần đi qua để dễ so sánh.
+- **Nón bóng:** với bán kính vật chắn `r`, bán kính nguồn `R`, khoảng cách nguồn–vật chắn `D`, sau vật chắn một đoạn `L`, dùng xấp xỉ cận trục `ru = r - L(R-r)/D`, `rp = r + L(R+r)/D`. `ru < 0` biểu diễn đối bóng sau đỉnh. Khoảng cách trục được nén riêng; kích thước vật thể và nón bóng được ghi rõ là minh họa. Phân loại không dùng tọa độ phóng đại. Đây không phải thiên thể lịch hay dự báo hiện tượng thực tế. Màu đỏ nguyệt thực là shader minh họa, không tính khí quyển; các pha Mặt Trăng thông thường là cơ chế khác. Quan sát Mặt Trời thực tế cần phương tiện bảo vệ chuyên dụng đúng chuẩn, không dùng kính râm thường.
+- **Thủy triều:** mô hình cân bằng bậc hai, `h(n) = P₂(n·m) + k P₂(n·s)`, `P₂(x)=(3x²-1)/2`, `k=(M☉/M☾)(d☾/d☉)³≈0,46` từ khối lượng và khoảng cách trong danh mục. Mũi tên dùng trường gia tốc vi sai bậc nhất `3(n·m)m-n` cộng đóng góp Mặt Trời. Quan sát viên quay một vòng trong tiến trình; vỏ nước và đồ thị cùng dùng hàm `h`. Vỏ nước phóng đại, đồ thị chỉ có đơn vị minh họa, không phải mét. Cấu hình Mặt Trời/Mặt Trăng giữ cố định trong một vòng quay; không mô phỏng bờ biển, độ sâu, độ trễ, động lực học biển hay chuyển động quỹ đạo cả tháng. Không dùng để dự báo giờ/độ cao thủy triều tại địa điểm thực.
+
+Nguồn đã mở và đối chiếu ngày 09/11/2026:
+
+- [NASA — Types of stars / neutron stars](https://science.nasa.gov/universe/stars/types/).
+- [NASA — Anatomy of a black hole](https://science.nasa.gov/universe/black-holes/anatomy/).
+- [NASA — Types of solar eclipses](https://science.nasa.gov/eclipses/types/), [Eclipse viewing safety](https://science.nasa.gov/eclipses/safety/).
+- [NASA — Eclipses and the Moon](https://science.nasa.gov/moon/eclipses/).
+- [NOAA — Gravity and the two bulges](https://oceanservice.noaa.gov/education/tutorial_tides/tides03_gravity.html), [spring/neap variations](https://oceanservice.noaa.gov/education/tutorial_tides/tides06_variations.html).
+
+Kiểm tra bằng `npm test`, `npm run typecheck`, `npm run build`, `npm run format:check` và `npm run test:e2e`. `src/phenomena/model.test.ts` kiểm tra các cấu hình, tiếp xúc/diện tích hình tròn, tua ngược và đồng hồ, đối xứng hai phần nước phồng và sự nhất quán đồ thị–mặt nước. `tests/phenomena.spec.ts` kiểm tra cả năm cảnh trên desktop/mobile, chế độ tập trung, raycasting qua vùng trong suốt, ngôn ngữ, fallback 2D và thu hồi R3F root sau nhiều lần chuyển cảnh. Ảnh có tên `test-results/{desktop,mobile}-phen-*.png`. Không có script ESLint trong repository; chưa kiểm tra trên điện thoại vật lý hoặc Safari/iOS thật.
+
 ## Bản cập nhật Hệ Mặt Trời
 
 Chọn **Hệ Mặt Trời** ở thanh trái (điện thoại: mở **Khám phá** trước), bấm dấu **Hệ Mặt Trời** trong Ngân Hà, hoặc tìm `Trái Đất`, `Earth`, `Sao Mộc`, `Jupiter`… Chọn thiên thể sẽ mở hồ sơ và đưa camera tới cảnh phù hợp. Hai cảnh Ngân Hà và lân cận vẫn hoạt động.

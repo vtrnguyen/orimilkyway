@@ -1,7 +1,11 @@
+import { SceneBoundary } from './components/SceneBoundary';
+import { usePhenomena } from './phenomena/state';
+import { phenomenonIds } from './phenomena/model';
+import { PhenomenaControls } from './phenomena/PhenomenaControls';
 import { t, i18n, objectName, categoryLabel, lessonIds, formatNumber } from './i18n';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelect } from './components/LanguageSelect';
-import { Component, Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -45,6 +49,7 @@ import { formatValue } from './lib/astronomy';
 import { useExplorer } from './state/useExplorer';
 import type { Mode } from './state/useExplorer';
 import { useImmersiveMode } from './state/useImmersiveMode';
+const PhenomenaStage = lazy(() => import('./phenomena/PhenomenaStage'));
 const SpaceScene = lazy(() => import('./scene/SpaceScene'));
 const SolarScene = lazy(() => import('./scene/SolarScene'));
 function hasWebGL() {
@@ -57,26 +62,6 @@ function hasWebGL() {
     return true;
   } catch {
     return false;
-  }
-}
-class SceneBoundary extends Component<
-  {
-    children: ReactNode;
-    onFailure: () => void;
-  },
-  {
-    failed: boolean;
-  }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  componentDidCatch() {
-    this.props.onFailure();
-  }
-  render() {
-    return this.state.failed ? null : this.props.children;
   }
 }
 function Switch({
@@ -159,13 +144,22 @@ export default function App() {
     text: t(`lessons.${lessonIds[index]}.text`),
   }));
   const { state, dispatch, reduced } = useExplorer();
+  const simulation = usePhenomena(reduced);
+  const phenKind = simulation.state.kind;
+  const [phenControlsOpen, setPhenControlsOpen] = useState(false);
   const [immersiveDetailId, setImmersiveDetailId] = useState<string | null>(null);
   const { isImmersiveMode, enterImmersiveMode, exitImmersiveMode, exitButtonRef } =
     useImmersiveMode({
-      hasOpenDetails: immersiveDetailId !== null,
-      onCloseDetails: () => setImmersiveDetailId(null),
+      hasOpenDetails: phenKind ? simulation.state.selected !== null : immersiveDetailId !== null,
+      hasOpenControls: !!phenKind && phenControlsOpen,
+      onCloseControls: () => setPhenControlsOpen(false),
+      onCloseDetails: () => {
+        if (phenKind) simulation.dispatch({ type: 'select', id: null });
+        else setImmersiveDetailId(null);
+      },
     });
   const [webgl, setWebgl] = useState(hasWebGL);
+  const onSceneFailure = useCallback(() => setWebgl(false), []);
   const [drawer, setDrawer] = useState(false);
   const [mobile, setMobile] = useState(() => matchMedia('(max-width: 760px)').matches);
   const [lesson, setLesson] = useState<number | null>(null);
@@ -200,6 +194,7 @@ export default function App() {
     }
   };
   const select = (id: string) => {
+    if (phenKind) simulation.dispatch({ type: 'open', kind: null });
     if (isImmersiveMode) setImmersiveDetailId(id);
     else {
       dispatch({ type: 'select', id });
@@ -219,6 +214,7 @@ export default function App() {
     else dispatch({ type: 'toggle', key: 'follow' });
   };
   const changeMode = (mode: Mode) => {
+    simulation.dispatch({ type: 'open', kind: null });
     dispatch({ type: 'mode', mode });
     setDrawer(false);
   };
@@ -246,7 +242,7 @@ export default function App() {
   ];
   return (
     <div
-      className={`app-shell ${isImmersiveMode ? 'is-immersive' : ''} ${isImmersiveMode && immersiveDetailId ? 'immersive-detail-open' : ''}`}
+      className={`app-shell ${isImmersiveMode ? 'is-immersive' : ''} ${isImmersiveMode && (phenKind ? simulation.state.selected : immersiveDetailId) ? 'immersive-detail-open' : ''}`}
     >
       <header className="topbar" inert={isImmersiveMode}>
         <a className="brand" href="./" aria-label={t('App.milkyWayExplorerTrangKhamPha')}>
@@ -309,9 +305,9 @@ export default function App() {
               <span>01</span>
             </div>
             <button
-              className={`mode-button ${state.mode === 'galaxy' ? 'active' : ''}`}
+              className={`mode-button ${!phenKind && state.mode === 'galaxy' ? 'active' : ''}`}
               onClick={() => changeMode('galaxy')}
-              aria-pressed={state.mode === 'galaxy'}
+              aria-pressed={!phenKind && state.mode === 'galaxy'}
             >
               <Orbit size={20} />
               <span>
@@ -321,9 +317,9 @@ export default function App() {
               <ChevronRight size={15} />
             </button>
             <button
-              className={`mode-button ${state.mode === 'local' ? 'active' : ''}`}
+              className={`mode-button ${!phenKind && state.mode === 'local' ? 'active' : ''}`}
               onClick={() => changeMode('local')}
-              aria-pressed={state.mode === 'local'}
+              aria-pressed={!phenKind && state.mode === 'local'}
             >
               <Globe2 size={19} />
               <span>
@@ -333,9 +329,9 @@ export default function App() {
               <ChevronRight size={15} />
             </button>
             <button
-              className={`mode-button ${state.mode === 'solar' ? 'active' : ''}`}
+              className={`mode-button ${!phenKind && state.mode === 'solar' ? 'active' : ''}`}
               onClick={() => changeMode('solar')}
-              aria-pressed={state.mode === 'solar'}
+              aria-pressed={!phenKind && state.mode === 'solar'}
             >
               <Orbit size={20} />
               <span>
@@ -345,76 +341,109 @@ export default function App() {
               <ChevronRight size={15} />
             </button>
           </div>
-          <div className="sidebar-section">
-            <div className="section-label">
-              {t('App.cacLopHienThi')}
-              <Layers3 size={13} />
-            </div>
-            <Switch
-              label={t('App.tenThienThe')}
-              checked={state.labels}
-              disabled={!webgl}
-              onChange={() => dispatch({ type: 'toggle', key: 'labels' })}
-              icon={
-                <span className="letter-icon" aria-hidden="true">
-                  Aa
-                </span>
-              }
+          <details className="sidebar-section phen-navigation" open={phenKind ? true : undefined}>
+            <summary>{t('phen.navigation')}</summary>
+            {phenomenonIds.map((kind) => (
+              <button
+                key={kind}
+                className={`mode-button ${phenKind === kind ? 'active' : ''}`}
+                aria-pressed={phenKind === kind}
+                onClick={() => {
+                  simulation.dispatch({ type: 'open', kind });
+                  setDrawer(false);
+                }}
+              >
+                <Sparkles size={18} />
+                <span>{t(`phen.name.${kind}`)}</span>
+                <ChevronRight size={14} />
+              </button>
+            ))}
+          </details>
+          {phenKind ? (
+            <PhenomenaControls
+              simulation={simulation}
+              reduced={reduced}
+              onInspect={() => setDrawer(false)}
             />
-            <Switch
-              label={t('App.haoQuangSao')}
-              checked={state.dust}
-              disabled={!webgl || (state.mode === 'solar' && state.solarScale === 'size')}
-              onChange={() => dispatch({ type: 'toggle', key: 'dust' })}
-              icon={<Sparkles size={16} />}
-            />
-            <Switch
-              label={state.mode === 'solar' ? t('App.luoiAu') : t('App.luoiKhoangCach')}
-              checked={state.grid}
-              disabled={!webgl || (state.mode === 'solar' && state.solarScale !== 'distance')}
-              onChange={() => dispatch({ type: 'toggle', key: 'grid' })}
-              icon={<Orbit size={16} />}
-            />
-          </div>
-          {state.mode === 'solar' ? (
-            <SolarControls state={state} dispatch={dispatch} onSelect={select} reduced={reduced} />
           ) : (
-            <div className="sidebar-section destinations">
-              <div className="section-label">
-                {t('App.diemDenGoiY')}
-                <Compass size={13} />
-              </div>
-              {['sun', 'sirius-a', 'proxima', 'vega', 'trappist'].map((id) => {
-                const star = stars.find((s) => s.id === id)!;
-                return (
-                  <button
-                    key={id}
-                    className={`destination ${state.selectedId === id ? 'current' : ''}`}
-                    onClick={() => select(id)}
-                  >
-                    <span
-                      className="destination-orb"
-                      style={{ '--star-color': star.color } as React.CSSProperties}
-                    />
-                    <span>
-                      {objectName(star.id)}
-                      <small>
-                        {id === 'sun'
-                          ? t('App.ngoiSaoCuaChungTa')
-                          : id === 'proxima'
-                            ? t('App.nguoiHangXomGanNhat')
-                            : id === 'trappist'
-                              ? t('App.motSaoBayHanhTinh')
-                              : id === 'vega'
-                                ? t('App.ngoiSaoChucNu')
-                                : t('App.ngoiSaoThienLang')}
-                      </small>
+            <>
+              <div className="sidebar-section">
+                <div className="section-label">
+                  {t('App.cacLopHienThi')}
+                  <Layers3 size={13} />
+                </div>
+                <Switch
+                  label={t('App.tenThienThe')}
+                  checked={state.labels}
+                  disabled={!webgl}
+                  onChange={() => dispatch({ type: 'toggle', key: 'labels' })}
+                  icon={
+                    <span className="letter-icon" aria-hidden="true">
+                      Aa
                     </span>
-                    <ArrowUpRight size={14} />
-                  </button>
-                );
-              })}
-            </div>
+                  }
+                />
+                <Switch
+                  label={t('App.haoQuangSao')}
+                  checked={state.dust}
+                  disabled={!webgl || (state.mode === 'solar' && state.solarScale === 'size')}
+                  onChange={() => dispatch({ type: 'toggle', key: 'dust' })}
+                  icon={<Sparkles size={16} />}
+                />
+                <Switch
+                  label={state.mode === 'solar' ? t('App.luoiAu') : t('App.luoiKhoangCach')}
+                  checked={state.grid}
+                  disabled={!webgl || (state.mode === 'solar' && state.solarScale !== 'distance')}
+                  onChange={() => dispatch({ type: 'toggle', key: 'grid' })}
+                  icon={<Orbit size={16} />}
+                />
+              </div>
+              {state.mode === 'solar' ? (
+                <SolarControls
+                  state={state}
+                  dispatch={dispatch}
+                  onSelect={select}
+                  reduced={reduced}
+                />
+              ) : (
+                <div className="sidebar-section destinations">
+                  <div className="section-label">
+                    {t('App.diemDenGoiY')}
+                    <Compass size={13} />
+                  </div>
+                  {['sun', 'sirius-a', 'proxima', 'vega', 'trappist'].map((id) => {
+                    const star = stars.find((s) => s.id === id)!;
+                    return (
+                      <button
+                        key={id}
+                        className={`destination ${state.selectedId === id ? 'current' : ''}`}
+                        onClick={() => select(id)}
+                      >
+                        <span
+                          className="destination-orb"
+                          style={{ '--star-color': star.color } as React.CSSProperties}
+                        />
+                        <span>
+                          {objectName(star.id)}
+                          <small>
+                            {id === 'sun'
+                              ? t('App.ngoiSaoCuaChungTa')
+                              : id === 'proxima'
+                                ? t('App.nguoiHangXomGanNhat')
+                                : id === 'trappist'
+                                  ? t('App.motSaoBayHanhTinh')
+                                  : id === 'vega'
+                                    ? t('App.ngoiSaoChucNu')
+                                    : t('App.ngoiSaoThienLang')}
+                          </small>
+                        </span>
+                        <ArrowUpRight size={14} />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
           <button className="learn-card" onClick={() => setLearnOpen(true)}>
             <span className="learn-icon">
@@ -448,288 +477,312 @@ export default function App() {
           </div>
         </aside>
 
-        <main
-          className={`stage mode-${state.mode} ${hasSelection ? 'has-selection' : ''}`}
-          aria-label={t('App.khongGianKhamPhaDetail')}
-        >
-          <div className="scene-surface">
-            {webgl ? (
-              <SceneBoundary onFailure={() => setWebgl(false)}>
-                <Suspense
-                  fallback={
-                    <div className="scene-message">
-                      <span className="loading-orbit" />
-                      {t('App.dangMoMotGocVuTru')}
-                    </div>
-                  }
-                >
-                  {state.mode === 'solar' ? (
-                    <SolarScene
-                      state={state}
-                      onSelect={select}
-                      reduced={reduced}
-                      onFailure={() => setWebgl(false)}
-                    />
-                  ) : (
-                    <SpaceScene
-                      state={state}
-                      onSelect={select}
-                      reduced={reduced}
-                      onFailure={() => setWebgl(false)}
-                    />
-                  )}
-                </Suspense>
-              </SceneBoundary>
-            ) : (
-              <div className="fallback-space">
-                <span className="eyebrow">{t('App.cheDoKhamPha2d')}</span>
-                <h2>{t('App.vuTruVanODay')}</h2>
-                <p>
-                  {t('App.webgl2KhongKhaDungHoacDaMatKet')}
-                  <br />
-                  {t('App.banVanCoTheKhamPhaDayDuDanh')}
-                </p>
-                <div className="fallback-stars">
-                  {catalog.map((body) => (
-                    <button key={body.id} onClick={() => select(body.id)}>
-                      <span className="star-dot" style={{ background: body.color }} />
-                      <span>
-                        {objectName(body.id)}
-                        <small>{categoryLabel(body.category)}</small>
-                      </span>
-                      <ArrowUpRight size={14} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="stage-heading">
-            <div className="eyebrow">
-              <span className="tiny-line" />
-              {t('App.chuyenHanhTrinhBatDauTuDay')}
-            </div>
-            <h1>
-              <em>{t(`headings.${state.mode}`)}</em>
-            </h1>
-            <p>
-              {state.mode === 'solar'
-                ? t('App.motNgoiSaoTuPhatSangTamHanhTinh')
-                : state.mode === 'galaxy'
-                  ? t('App.motThienHaHangTyCauChuyenVaBan')
-                  : t('App.motGocKhongGianNhoNhungNguoiHangXom')}
-            </p>
-          </div>
-          <div className="view-badge">
-            <span className="live-dot" />
-            {state.mode === 'solar'
-              ? t('App.heMatTroiDetail')
-              : state.mode === 'galaxy'
-                ? t('App.gocNhinThienHa')
-                : t('App.gocNhinLanCan')}
-            <span>{webgl ? '3D' : '2D'}</span>
-          </div>
-          <button className="mobile-controls" onClick={() => setDrawer(true)}>
-            <Menu size={18} />
-            {t('App.khamPhaDetail')}
-          </button>
-          {webgl && !hasSelection && state.mode !== 'solar' && (
-            <WelcomeCard onSelect={() => select('sun')} onLearn={() => setLesson(1)} />
-          )}
-          {solarSelected ? (
-            <SolarInfo
-              body={solarSelected}
-              scale={state.solarScale}
-              follow={state.follow && state.selectedId === solarSelected.id}
-              onClose={closeDetails}
-              onFocus={() => focusBody(solarSelected.id)}
-              onFollow={() => followBody(solarSelected.id)}
+        {phenKind ? (
+          <Suspense
+            fallback={
+              <main className="stage">
+                <p>{t('App.dangMoMotGocVuTru')}</p>
+              </main>
+            }
+          >
+            <PhenomenaStage
+              key={phenKind}
+              simulation={simulation}
+              reduced={reduced}
+              quality={state.quality}
+              webgl={webgl}
+              onFailure={onSceneFailure}
+              immersive={isImmersiveMode}
+              onEnter={enterImmersiveMode}
+              onDrawer={() => setDrawer(true)}
+              controlsOpen={phenControlsOpen}
+              onControls={setPhenControlsOpen}
             />
-          ) : (
-            selected && (
-              <StarInfo
-                star={selected}
-                onClose={closeDetails}
-                onFocus={() => focusBody(selected.id)}
-              />
-            )
-          )}
-          {state.mode === 'solar' && <SolarScaleNote scale={state.solarScale} />}
-          <div className="scene-orientation" aria-hidden="true">
-            <span className="axis-y" />
-            <span className="axis-x" />
-            <span className="axis-z" />
-            <i>Y</i>
-            <b>X</b>
-            <em>Z</em>
-          </div>
-          <div className="stage-bottom">
-            <div className="scene-context">
-              <span className="context-number">
-                {state.mode === 'solar' ? '03' : state.mode === 'galaxy' ? '01' : '02'}
-              </span>
-              <div>
-                <strong>
-                  {state.mode === 'solar'
-                    ? t('App.heMatTroiSolarSystem')
-                    : state.mode === 'galaxy'
-                      ? t('App.nganHaMilkyWay')
-                      : t('App.vungLanCanMatTroi')}
-                </strong>
-                <span>
-                  {state.mode === 'solar'
-                    ? t('App.tuQuayChuyenDongQuanhMatTroi')
-                    : state.mode === 'galaxy'
-                      ? t('App.thienHaXoanOcCoThanh')
-                      : t('App.valueDoiTuongCoViTriIcrsJ2000', { value1: mappedStars.length })}
-                </span>
-              </div>
-            </div>
-            <div className="toolbar" role="toolbar" aria-label={t('App.dieuKhienGocNhin')}>
-              <button
-                aria-label={t('App.datLaiGocNhin')}
-                title={t('App.datLaiGocNhin')}
-                onClick={() => dispatch({ type: 'reset' })}
-              >
-                <RotateCcw size={17} />
-              </button>
-              <span className="toolbar-divider" />
-              <button
-                aria-label={state.moving ? t('App.tatChuyenDong') : t('App.batChuyenDong')}
-                aria-pressed={state.moving}
-                title={
-                  reduced
-                    ? t('App.thietBiUuTienGiamChuyenDong')
-                    : state.moving
-                      ? t('App.tatChuyenDong')
-                      : t('App.batChuyenDong')
-                }
-                disabled={reduced}
-                onClick={() => dispatch({ type: 'toggle', key: 'moving' })}
-              >
-                {state.moving && !reduced ? <Pause size={17} /> : <Play size={17} />}
-              </button>
-              <button
-                aria-label={t('App.hienChuGiai')}
-                aria-pressed={legend}
-                title={t('App.chuGiai')}
-                onClick={() => setLegend(!legend)}
-              >
-                <Info size={17} />
-              </button>
-              <span className="toolbar-divider" />
-              <button
-                className="immersive-enter"
-                aria-label={t('App.xem3dTapTrung')}
-                title={t('App.xem3dTapTrung')}
-                aria-pressed={isImmersiveMode}
-                disabled={!webgl}
-                onClick={enterImmersiveMode}
-              >
-                <Maximize2 size={17} />
-              </button>
-            </div>
-            <div className="scale-label">
-              <span className="scale-bar" />
-              <span>
-                {state.mode === 'solar'
-                  ? state.solarScale === 'size'
-                    ? t('App.banKinh1DonVi10000Km')
-                    : state.solarScale === 'distance'
-                      ? t('App.khoangCach10DonVi1Au')
-                      : t('App.kichThuocKhoangCachDaDieuChinh')
-                  : state.mode === 'galaxy'
-                    ? t('App.1DonVi1000NamAnhSang')
-                    : t('App.1DonVi1NamAnhSang')}
-              </span>
-            </div>
-          </div>
-          {legend && (
-            <div className="legend panel">
-              <div className="panel-top">
-                <h3>{t('App.docBanDo')}</h3>
-                <button
-                  className="icon-button"
-                  aria-label={t('App.dongChuGiai')}
-                  onClick={() => setLegend(false)}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              {state.mode === 'solar' ? (
-                <>
-                  <p>{t('App.duongManhQuyDaoTronGianLuoc')}</p>
-                  <p>{t('App.vongTronNhoCanhNhanDauDinhViKhong')}</p>
-                  <p>{t('App.luoiAuCanhKhoangCach151020')}</p>
-                  <small>
-                    {scaleNotes[state.solarScale]}
-                    {t('App.beMatVaMauMinhHoaBangThuatToan')}
-                  </small>
-                </>
+          </Suspense>
+        ) : (
+          <main
+            className={`stage mode-${state.mode} ${hasSelection ? 'has-selection' : ''}`}
+            aria-label={t('App.khongGianKhamPhaDetail')}
+          >
+            <div className="scene-surface">
+              {webgl ? (
+                <SceneBoundary onFailure={onSceneFailure}>
+                  <Suspense
+                    fallback={
+                      <div className="scene-message">
+                        <span className="loading-orbit" />
+                        {t('App.dangMoMotGocVuTru')}
+                      </div>
+                    }
+                  >
+                    {state.mode === 'solar' ? (
+                      <SolarScene
+                        state={state}
+                        onSelect={select}
+                        reduced={reduced}
+                        onFailure={onSceneFailure}
+                      />
+                    ) : (
+                      <SpaceScene
+                        state={state}
+                        onSelect={select}
+                        reduced={reduced}
+                        onFailure={onSceneFailure}
+                      />
+                    )}
+                  </Suspense>
+                </SceneBoundary>
               ) : (
-                <>
+                <div className="fallback-space">
+                  <span className="eyebrow">{t('App.cheDoKhamPha2d')}</span>
+                  <h2>{t('App.vuTruVanODay')}</h2>
                   <p>
-                    <span className="star-dot warm" />
-                    {t('App.vangViTriMatTroi')}
+                    {t('App.webgl2KhongKhaDungHoacDaMatKet')}
+                    <br />
+                    {t('App.banVanCoTheKhamPhaDayDuDanh')}
                   </p>
-                  <p>
-                    <span className="star-dot cool" />
-                    {t('App.xanhDoMauSaoMinhHoa')}
-                  </p>
-                  <p>
-                    {t('legend.rings', {
-                      distances: new Intl.ListFormat(i18n.resolvedLanguage, {
-                        style: 'long',
-                        type: 'conjunction',
-                      }).format(
-                        (state.mode === 'galaxy'
-                          ? [13000, 26000, 39000, 50000]
-                          : [5, 10, 15, 20]
-                        ).map((n) => formatNumber(n)),
-                      ),
-                    })}
-                  </p>
-                  <small>{t('App.hatCuaNganHaDuocSinhTheoThuatToan')}</small>
-                </>
+                  <div className="fallback-stars">
+                    {catalog.map((body) => (
+                      <button key={body.id} onClick={() => select(body.id)}>
+                        <span className="star-dot" style={{ background: body.color }} />
+                        <span>
+                          {objectName(body.id)}
+                          <small>{categoryLabel(body.category)}</small>
+                        </span>
+                        <ArrowUpRight size={14} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-          )}
-          <div className="interaction-hint">
-            {webgl ? (
-              <>
-                <span>
-                  <Mouse size={13} />
-                  {t('App.keoDeXoay')}
-                </span>
-                <span>
-                  <Plus size={12} />
-                  <Minus size={12} />
-                  {t('App.cuonDeThuPhong')}
-                </span>
-                <span>
-                  <Crosshair size={13} />
-                  {t('App.chonSaoDeKhamPha')}
-                </span>
-              </>
-            ) : (
-              <span>
-                <SearchIcon size={13} />
-                {t('App.chonTuDanhMucHoacTimTenSaoDe')}
-              </span>
-            )}
-          </div>
-          <div className="science-note">
-            <Info size={13} />
-            <span>
+            <div className="stage-heading">
+              <div className="eyebrow">
+                <span className="tiny-line" />
+                {t('App.chuyenHanhTrinhBatDauTuDay')}
+              </div>
+              <h1>
+                <em>{t(`headings.${state.mode}`)}</em>
+              </h1>
+              <p>
+                {state.mode === 'solar'
+                  ? t('App.motNgoiSaoTuPhatSangTamHanhTinh')
+                  : state.mode === 'galaxy'
+                    ? t('App.motThienHaHangTyCauChuyenVaBan')
+                    : t('App.motGocKhongGianNhoNhungNguoiHangXom')}
+              </p>
+            </div>
+            <div className="view-badge">
+              <span className="live-dot" />
               {state.mode === 'solar'
-                ? t('App.beMatMinhHoaBangThuatToanKhongPhai')
+                ? t('App.heMatTroiDetail')
                 : state.mode === 'galaxy'
-                  ? t('App.moHinhTrucQuanHoaMinhHoaKhongPhai')
-                  : t('App.thangDoRiengVoiNganHaViTriO')}
-            </span>
-            {!webgl && <span className="fallback-indicator">2D</span>}
-          </div>
-        </main>
+                  ? t('App.gocNhinThienHa')
+                  : t('App.gocNhinLanCan')}
+              <span>{webgl ? '3D' : '2D'}</span>
+            </div>
+            <button className="mobile-controls" onClick={() => setDrawer(true)}>
+              <Menu size={18} />
+              {t('App.khamPhaDetail')}
+            </button>
+            {webgl && !hasSelection && state.mode !== 'solar' && (
+              <WelcomeCard onSelect={() => select('sun')} onLearn={() => setLesson(1)} />
+            )}
+            {solarSelected ? (
+              <SolarInfo
+                body={solarSelected}
+                scale={state.solarScale}
+                follow={state.follow && state.selectedId === solarSelected.id}
+                onClose={closeDetails}
+                onFocus={() => focusBody(solarSelected.id)}
+                onFollow={() => followBody(solarSelected.id)}
+              />
+            ) : (
+              selected && (
+                <StarInfo
+                  star={selected}
+                  onClose={closeDetails}
+                  onFocus={() => focusBody(selected.id)}
+                />
+              )
+            )}
+            {state.mode === 'solar' && <SolarScaleNote scale={state.solarScale} />}
+            <div className="scene-orientation" aria-hidden="true">
+              <span className="axis-y" />
+              <span className="axis-x" />
+              <span className="axis-z" />
+              <i>Y</i>
+              <b>X</b>
+              <em>Z</em>
+            </div>
+            <div className="stage-bottom">
+              <div className="scene-context">
+                <span className="context-number">
+                  {state.mode === 'solar' ? '03' : state.mode === 'galaxy' ? '01' : '02'}
+                </span>
+                <div>
+                  <strong>
+                    {state.mode === 'solar'
+                      ? t('App.heMatTroiSolarSystem')
+                      : state.mode === 'galaxy'
+                        ? t('App.nganHaMilkyWay')
+                        : t('App.vungLanCanMatTroi')}
+                  </strong>
+                  <span>
+                    {state.mode === 'solar'
+                      ? t('App.tuQuayChuyenDongQuanhMatTroi')
+                      : state.mode === 'galaxy'
+                        ? t('App.thienHaXoanOcCoThanh')
+                        : t('App.valueDoiTuongCoViTriIcrsJ2000', { value1: mappedStars.length })}
+                  </span>
+                </div>
+              </div>
+              <div className="toolbar" role="toolbar" aria-label={t('App.dieuKhienGocNhin')}>
+                <button
+                  aria-label={t('App.datLaiGocNhin')}
+                  title={t('App.datLaiGocNhin')}
+                  onClick={() => dispatch({ type: 'reset' })}
+                >
+                  <RotateCcw size={17} />
+                </button>
+                <span className="toolbar-divider" />
+                <button
+                  aria-label={state.moving ? t('App.tatChuyenDong') : t('App.batChuyenDong')}
+                  aria-pressed={state.moving}
+                  title={
+                    reduced
+                      ? t('App.thietBiUuTienGiamChuyenDong')
+                      : state.moving
+                        ? t('App.tatChuyenDong')
+                        : t('App.batChuyenDong')
+                  }
+                  disabled={reduced}
+                  onClick={() => dispatch({ type: 'toggle', key: 'moving' })}
+                >
+                  {state.moving && !reduced ? <Pause size={17} /> : <Play size={17} />}
+                </button>
+                <button
+                  aria-label={t('App.hienChuGiai')}
+                  aria-pressed={legend}
+                  title={t('App.chuGiai')}
+                  onClick={() => setLegend(!legend)}
+                >
+                  <Info size={17} />
+                </button>
+                <span className="toolbar-divider" />
+                <button
+                  className="immersive-enter"
+                  aria-label={t('App.xem3dTapTrung')}
+                  title={t('App.xem3dTapTrung')}
+                  aria-pressed={isImmersiveMode}
+                  disabled={!webgl}
+                  onClick={enterImmersiveMode}
+                >
+                  <Maximize2 size={17} />
+                </button>
+              </div>
+              <div className="scale-label">
+                <span className="scale-bar" />
+                <span>
+                  {state.mode === 'solar'
+                    ? state.solarScale === 'size'
+                      ? t('App.banKinh1DonVi10000Km')
+                      : state.solarScale === 'distance'
+                        ? t('App.khoangCach10DonVi1Au')
+                        : t('App.kichThuocKhoangCachDaDieuChinh')
+                    : state.mode === 'galaxy'
+                      ? t('App.1DonVi1000NamAnhSang')
+                      : t('App.1DonVi1NamAnhSang')}
+                </span>
+              </div>
+            </div>
+            {legend && (
+              <div className="legend panel">
+                <div className="panel-top">
+                  <h3>{t('App.docBanDo')}</h3>
+                  <button
+                    className="icon-button"
+                    aria-label={t('App.dongChuGiai')}
+                    onClick={() => setLegend(false)}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                {state.mode === 'solar' ? (
+                  <>
+                    <p>{t('App.duongManhQuyDaoTronGianLuoc')}</p>
+                    <p>{t('App.vongTronNhoCanhNhanDauDinhViKhong')}</p>
+                    <p>{t('App.luoiAuCanhKhoangCach151020')}</p>
+                    <small>
+                      {scaleNotes[state.solarScale]}
+                      {t('App.beMatVaMauMinhHoaBangThuatToan')}
+                    </small>
+                  </>
+                ) : (
+                  <>
+                    <p>
+                      <span className="star-dot warm" />
+                      {t('App.vangViTriMatTroi')}
+                    </p>
+                    <p>
+                      <span className="star-dot cool" />
+                      {t('App.xanhDoMauSaoMinhHoa')}
+                    </p>
+                    <p>
+                      {t('legend.rings', {
+                        distances: new Intl.ListFormat(i18n.resolvedLanguage, {
+                          style: 'long',
+                          type: 'conjunction',
+                        }).format(
+                          (state.mode === 'galaxy'
+                            ? [13000, 26000, 39000, 50000]
+                            : [5, 10, 15, 20]
+                          ).map((n) => formatNumber(n)),
+                        ),
+                      })}
+                    </p>
+                    <small>{t('App.hatCuaNganHaDuocSinhTheoThuatToan')}</small>
+                  </>
+                )}
+              </div>
+            )}
+            <div className="interaction-hint">
+              {webgl ? (
+                <>
+                  <span>
+                    <Mouse size={13} />
+                    {t('App.keoDeXoay')}
+                  </span>
+                  <span>
+                    <Plus size={12} />
+                    <Minus size={12} />
+                    {t('App.cuonDeThuPhong')}
+                  </span>
+                  <span>
+                    <Crosshair size={13} />
+                    {t('App.chonSaoDeKhamPha')}
+                  </span>
+                </>
+              ) : (
+                <span>
+                  <SearchIcon size={13} />
+                  {t('App.chonTuDanhMucHoacTimTenSaoDe')}
+                </span>
+              )}
+            </div>
+            <div className="science-note">
+              <Info size={13} />
+              <span>
+                {state.mode === 'solar'
+                  ? t('App.beMatMinhHoaBangThuatToanKhongPhai')
+                  : state.mode === 'galaxy'
+                    ? t('App.moHinhTrucQuanHoaMinhHoaKhongPhai')
+                    : t('App.thangDoRiengVoiNganHaViTriO')}
+              </span>
+              {!webgl && <span className="fallback-indicator">2D</span>}
+            </div>
+          </main>
+        )}
       </div>
 
       {isImmersiveMode && (
@@ -866,30 +919,32 @@ export default function App() {
         </Modal>
       )}
       <div className="sr-only" role="status" aria-live="polite">
-        {solarSelected
-          ? t('App.daChonValueValueCanhHeMatTroiValue', {
-              value1: objectName(solarSelected.id),
-              value2: categoryLabel(solarSelected.category),
-              value3: scaleNotes[state.solarScale],
-            })
-          : selected
-            ? t('App.daChonValueValue', {
-                value1: objectName(selected.id),
-                value2: starPosition(selected)
-                  ? t('App.gocNhinValueKhoangCachValue', {
-                      value1:
-                        state.mode === 'local'
-                          ? t('App.lanCanMatTroiDetail')
-                          : t('App.nganHaDetail'),
-                      value2: formatValue(selected.distanceLy, t('App.namAnhSang')),
-                    })
-                  : t('App.chuaCoToaDoDaXacMinhChiMo'),
+        {phenKind
+          ? t('phen.status', { name: t(`phen.name.${phenKind}`) })
+          : solarSelected
+            ? t('App.daChonValueValueCanhHeMatTroiValue', {
+                value1: objectName(solarSelected.id),
+                value2: categoryLabel(solarSelected.category),
+                value3: scaleNotes[state.solarScale],
               })
-            : state.mode === 'solar'
-              ? t('App.heMatTroiValue', { value1: scaleNotes[state.solarScale] })
-              : state.mode === 'galaxy'
-                ? t('App.toanCanhNganHa')
-                : t('App.vungLanCanMatTroiMotDonViLa')}
+            : selected
+              ? t('App.daChonValueValue', {
+                  value1: objectName(selected.id),
+                  value2: starPosition(selected)
+                    ? t('App.gocNhinValueKhoangCachValue', {
+                        value1:
+                          state.mode === 'local'
+                            ? t('App.lanCanMatTroiDetail')
+                            : t('App.nganHaDetail'),
+                        value2: formatValue(selected.distanceLy, t('App.namAnhSang')),
+                      })
+                    : t('App.chuaCoToaDoDaXacMinhChiMo'),
+                })
+              : state.mode === 'solar'
+                ? t('App.heMatTroiValue', { value1: scaleNotes[state.solarScale] })
+                : state.mode === 'galaxy'
+                  ? t('App.toanCanhNganHa')
+                  : t('App.vungLanCanMatTroiMotDonViLa')}
       </div>
       <a className="skip-link" href="#quality">
         {t('App.denCaiDatChatLuong')}

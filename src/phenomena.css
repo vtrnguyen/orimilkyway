@@ -1,0 +1,354 @@
+.phen-navigation {
+  margin-top: 0;
+  padding-bottom: 18px;
+}
+.phen-navigation summary {
+  color: #c4b5ed;
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 12px;
+}
+.phen-navigation .mode-button {
+  min-height: 44px;
+}
+.phen-controls {
+  font-size: 12px;
+  color: #c1c6d8;
+  padding-bottom: 22px;
+}
+.phen-controls h2 {
+  font-size: 13px;
+}
+.phen-controls .panel-top {
+  padding: 0 0 14px;
+  border: 0;
+}
+.phen-controls > label {
+  display: block;
+  margin: 16px 0;
+  line-height: 1.65;
+}
+.phen-controls select {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  min-height: 38px;
+  background: #1a1d2b;
+  color: #e6e1ef;
+  border: 1px solid #b3a6db35;
+  border-radius: 6px;
+  padding: 6px;
+}
+.phen-controls input[type='range'] {
+  display: block;
+  width: 100%;
+  margin: 10px 0 0;
+  min-height: 24px;
+  accent-color: #b49ce8;
+}
+.phen-controls output {
+  float: right;
+  font-variant-numeric: tabular-nums;
+}
+.phen-controls .solar-checkbox {
+  display: flex;
+  gap: 10px;
+}
+.phen-controls .data-note {
+  font-size: 11px;
+}
+.phen-playback {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.phen-playback .primary-button {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 11px;
+}
+.phen-steps {
+  display: flex;
+  gap: 8px;
+}
+.phen-steps button {
+  border: 1px solid #a997ce55;
+  border-radius: 6px;
+  min-width: 32px;
+  min-height: 32px;
+}
+.phenomena-stage .stage-heading {
+  top: 32px;
+  left: 32px;
+  max-width: min(650px, 70%);
+  pointer-events: none;
+}
+.phenomena-stage .stage-heading h1 {
+  font-size: clamp(25px, 3vw, 42px);
+  margin-top: 12px;
+}
+.phenomena-stage .stage-heading p {
+  max-width: 600px;
+  white-space: normal;
+  line-height: 1.7;
+  font-size: 12px;
+}
+.phenomena-stage .scene-surface {
+  inset: 0;
+}
+.phen-enter {
+  position: absolute;
+  right: 24px;
+  top: 30px;
+  z-index: 7;
+  width: 44px;
+  height: 44px;
+  background: #161a27bd;
+  border: 1px solid #d8c5ee28;
+  border-radius: 8px;
+}
+.phen-guide {
+  position: absolute;
+  bottom: 20px;
+  left: 28px;
+  width: min(410px, calc(100% - 56px));
+  max-height: 34%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px 18px;
+  z-index: 5;
+  font-size: 11px;
+  color: #adb4cb;
+  line-height: 1.8;
+}
+.phen-phase h2 {
+  font-size: 16px;
+  margin: 4px 0 8px;
+  color: #e0d5f2;
+}
+.phen-guide details {
+  margin-top: 10px;
+}
+.phen-guide summary {
+  cursor: pointer;
+  color: #cbbde6;
+}
+.phen-component-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.phen-component-list button {
+  border: 1px solid #bca3db33;
+  border-radius: 6px;
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.phen-component-list button span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.phen-info {
+  z-index: 15;
+}
+.phenomena-stage:has(.phen-info) > .phen-observer,
+.phenomena-stage:has(.phen-info) > .phen-tide-graph {
+  visibility: hidden;
+}
+.phen-observer,
+.phen-tide-graph {
+  position: absolute;
+  right: 24px;
+  top: 124px;
+  width: 210px;
+  padding: 14px;
+  margin: 0;
+  border: 1px solid #8c87b343;
+  border-radius: 10px;
+  background: #111523eb;
+  z-index: 6;
+  color: #b4bfd4;
+  font-size: 11px;
+}
+.phen-observer h2,
+.phen-tide-graph figcaption {
+  font-size: 12px;
+  margin: 0 0 8px;
+  color: #dbd2eb;
+}
+.phen-observer svg {
+  display: block;
+  width: 100%;
+  max-height: 155px;
+}
+.phen-observer output,
+.phen-observer small,
+.phen-tide-graph output {
+  display: block;
+  margin-top: 5px;
+}
+.phen-tide-graph svg {
+  width: 100%;
+}
+.phen-labels .scene-label {
+  font-size: 10px;
+  padding: 4px 6px;
+  border: 1px solid #ab9dca44;
+  background: #111421cc;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.phen-fallback {
+  position: absolute;
+  inset: 145px 24px 32%;
+  overflow: auto;
+  font-size: 12px;
+  color: #b2bdd2;
+}
+.phen-fallback > svg {
+  width: 100%;
+  max-height: 350px;
+}
+.phen-fallback > p {
+  max-width: 60%;
+}
+.phen-floating-controls {
+  position: absolute;
+  top: calc(68px + env(safe-area-inset-top, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  width: min(280px, calc(100% - 24px));
+  max-height: calc(100% - 90px - env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 14px;
+  z-index: 106;
+}
+.phen-floating-controls .phen-controls {
+  padding: 0;
+}
+.phen-controls-toggle {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(68px + env(safe-area-inset-right, 0px));
+  width: 44px;
+  height: 44px;
+  background: #131725c9;
+  border: 1px solid #c0b3db35;
+  border-radius: 8px;
+  z-index: 110;
+}
+.app-shell.is-immersive .stage > .phen-controls-toggle,
+.app-shell.is-immersive .stage > .phen-floating-controls {
+  display: block !important;
+}
+.app-shell.is-immersive .phen-fallback {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.app-shell.is-immersive .phen-fallback > :not(svg) {
+  display: none;
+}
+.app-shell.is-immersive .phen-fallback > svg {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+@media (max-width: 760px) {
+  .phen-controls label,
+  .phen-controls select {
+    font-size: 13px;
+  }
+  .phen-controls select,
+  .phen-steps button {
+    min-height: 40px;
+  }
+  .phenomena-stage .stage-heading {
+    top: 24px;
+    left: 20px;
+    max-width: calc(100% - 90px);
+  }
+  .phenomena-stage .stage-heading h1 {
+    font-size: 25px;
+    margin-top: 8px;
+  }
+  .phenomena-stage .stage-heading p {
+    font-size: 10px;
+    max-height: 48px;
+    overflow: auto;
+  }
+  .phen-enter {
+    top: 24px;
+    right: 16px;
+  }
+  .phenomena-stage .mobile-controls {
+    top: 140px;
+  }
+  .phen-guide {
+    left: 12px;
+    bottom: 12px;
+    width: calc(100% - 24px);
+    max-height: 28%;
+    font-size: 10px;
+    padding: 12px;
+  }
+  .phen-phase h2 {
+    font-size: 14px;
+  }
+  .phen-observer,
+  .phen-tide-graph {
+    top: auto;
+    bottom: 12px;
+    right: 12px;
+    width: 142px;
+    padding: 9px;
+    font-size: 9px;
+  }
+  .phen-observer h2,
+  .phen-tide-graph figcaption {
+    font-size: 10px;
+  }
+  .phen-observer svg {
+    max-height: 95px;
+  }
+  .phenomena-stage:has(.phen-observer) .phen-guide,
+  .phenomena-stage:has(.phen-tide-graph) .phen-guide {
+    width: calc(100% - 184px);
+  }
+  .phen-labels [data-component='umbra'],
+  .phen-labels [data-component='penumbra'],
+  .phen-labels [data-component='antumbra'],
+  .phen-labels [data-component='water'],
+  .phen-labels [data-component='forces'] {
+    display: none;
+  }
+  .phen-info {
+    top: auto;
+    height: auto;
+    max-height: 43%;
+  }
+  .phen-fallback {
+    inset: 160px 12px 30%;
+  }
+  .phen-fallback > p {
+    max-width: 52%;
+    font-size: 10px;
+  }
+  .phen-floating-controls {
+    top: auto;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    max-height: min(40dvh, 360px);
+    width: calc(100% - 24px);
+  }
+  .app-shell.is-immersive.immersive-detail-open .phen-floating-controls {
+    bottom: calc(46dvh + 12px);
+    max-height: calc(54dvh - 84px - env(safe-area-inset-top, 0px));
+  }
+}

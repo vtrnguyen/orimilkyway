@@ -14,7 +14,9 @@
 
 .app-shell.is-immersive > :not(.workspace):not(.immersive-exit),
 .app-shell.is-immersive .workspace > :not(.stage),
-.app-shell.is-immersive .stage > :not(.scene-surface):not(.info-panel),
+.app-shell.is-immersive
+  .stage
+  > :not(.scene-surface):not(.info-panel):not(.phen-controls-toggle):not(.phen-floating-controls),
 .app-shell.is-immersive:not(.immersive-detail-open) .info-panel,
 .app-shell.is-immersive .labels-overlay,
 .app-shell.is-immersive .simulation-clock,
